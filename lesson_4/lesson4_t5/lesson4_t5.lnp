@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"main.obj" 
+TO "lesson4_t5" 
+RAMSIZE(256) 
