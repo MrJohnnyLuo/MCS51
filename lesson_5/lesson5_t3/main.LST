@@ -1,0 +1,81 @@
+C51 COMPILER V9.02   MAIN                                                                  03/11/2020 00:20:49 PAGE 1   
+
+
+C51 COMPILER V9.02, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\Program Files (x86)\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*      定时器查询模式实现左右移动的流水灯      */
+   2          #include<reg52.h>
+   3          
+   4          sbit ADDR0 = P1^0;
+   5          sbit ADDR1 = P1^1;
+   6          sbit ADDR2 = P1^2;
+   7          sbit ADDR3 = P1^3;
+   8          sbit ENLED = P1^4;
+   9          
+  10          void main()
+  11          {
+  12   1              unsigned char cnt = 0;          //定义计数变量cnt，记录T0溢出次数
+  13   1              unsigned char dir = 0;          //定义移位方向变量dir，用于控制移位的方向
+  14   1              unsigned char shift = 0x01;     //定义循环移位变量shift，并赋初值0x01
+  15   1      
+  16   1              ENLED = 0;              //使能U3，选择独立LED
+  17   1              ADDR3 = 1;
+  18   1              ADDR2 = 1;
+  19   1              ADDR1 = 1;
+  20   1              ADDR0 = 0;
+  21   1      
+  22   1              TMOD = 0x01;    //设置T0为模式1
+  23   1              TH0 = 0xB0;             //为T0赋初值0xB800
+  24   1              TL0 = 0x00;
+  25   1              TR0 = 1;                //启动T0
+  26   1      
+  27   1              while(1)                //主循环，程序无限循环执行该循环体语句
+  28   1              {
+  29   2                      P0 = ~shift;            //P0等于循环移位变量取反，控制8个LED
+  30   2                      while( TF0 == 0 );      //当TF0等于0时一直执行空循环，即停在这里直到T0溢出
+  31   2                      TF0 = 0;                        //T0溢出后，清零中断标志
+  32   2                      TH0 = 0xB0;                     //并重新赋初值
+  33   2                      TL0 = 0x00;
+  34   2                      cnt++;                          //计数值自加1
+  35   2                      if( cnt >= 10)          //T0溢出达到10次后，控制移位
+  36   2                      {
+  37   3                              cnt = 0;
+  38   3                              if( dir == 0 )                          //移位方向变量为0时，左移
+  39   3                              {
+  40   4                                      shift = shift << 1;             //循环移位变量左移1位
+  41   4                                      if( shift == 0x80 )             //左移到最左端后，改变移位方向
+  42   4                                      {
+  43   5                                              dir = 1;
+  44   5                                      }       
+  45   4                              }
+  46   3                              else                                            //移位方向变量不为0时，右移
+  47   3                              {
+  48   4                                      shift = shift >> 1;             //循环移位变量右移1位
+  49   4                                      if( shift == 0x01 )             //右移到最右端时，改变移位方向
+  50   4                                      {
+  51   5                                              dir = 0;
+  52   5                                      }
+  53   4                              }
+  54   3                      }
+  55   2              }
+C51 COMPILER V9.02   MAIN                                                                  03/11/2020 00:20:49 PAGE 2   
+
+  56   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     74    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
