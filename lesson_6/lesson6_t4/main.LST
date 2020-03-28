@@ -1,0 +1,121 @@
+C51 COMPILER V9.02   MAIN                                                                  03/28/2020 00:02:40 PAGE 1   
+
+
+C51 COMPILER V9.02, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: D:\Program Files (x86)\Keil\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*
+   2          ***************************************
+   3          ***多位数字显示的基础上不显示高位的0***
+   4          ***************************************
+   5          */
+   6          
+   7          #include<reg52.h>
+   8          
+   9          sbit ADDR0 = P1^0;
+  10          sbit ADDR1 = P1^1;
+  11          sbit ADDR2 = P1^2;
+  12          sbit ADDR3 = P1^3;
+  13          sbit ENLED = P1^4;
+  14          
+  15          unsigned char code LedChar[] = {        //数码管显示字符转换表
+  16                  0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8,
+  17                  0x80, 0x90, 0x88, 0x83, 0xC6, 0xA1, 0x86, 0x8E
+  18          };
+  19          unsigned char LedBuff[6] = {    //数码管显示缓冲区，初值0xFF确保启动时都不亮
+  20                  0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+  21          };
+  22          unsigned char i = 0;            //动态扫描的索引
+  23          unsigned int cnt = 0;           //记录T0中断次数
+  24          unsigned char flag1s = 0;       //1秒定时标志
+  25          
+  26          void main()
+  27          {
+  28   1              unsigned char j = 0;    //循环变量      //***Johnny***为什么这里要用signed char，而不能用unsigned char型***Luo***
+             -//
+  29   1              unsigned long sec = 0;  //记录经过的秒数
+  30   1              unsigned char buf[6];   //中间转换缓冲区
+  31   1      
+  32   1              EA = 1;                 //使能总中断
+  33   1              ENLED = 0;              //使能U3
+  34   1              ADDR3 = 1;              //因为需要动态改变ADDR0-2的值，所以不需要再初始化了
+  35   1              TMOD = 0x01;    //设置T0为模式1
+  36   1              TH0 = 0xFC;             //为T0赋初值0xFC67，定时1ms
+  37   1              TL0 = 0x67;     
+  38   1              ET0 = 1;                //使能T0中断
+  39   1              TR0 = 1;                //启动T0
+  40   1      
+  41   1              while(1)
+  42   1              {
+  43   2                      if(flag1s == 1)         //判断1秒定时标志
+  44   2                      {
+  45   3                              flag1s = 0;             //1秒定时标志清零
+  46   3                              sec++;                  //秒计数自加1
+  47   3                              //将sec按十进制位从低到高依次提取到buf数组中
+  48   3                              buf[0] = sec%10;
+  49   3                              buf[1] = sec/10%10;
+  50   3                              buf[2] = sec/100%10;
+  51   3                              buf[3] = sec/1000%10;
+  52   3                              buf[4] = sec/10000%10;
+  53   3                              buf[5] = sec/100000%10;
+  54   3                              //从最高位开始，遇到0不显示，遇到非0退出循环
+C51 COMPILER V9.02   MAIN                                                                  03/28/2020 00:02:40 PAGE 2   
+
+  55   3                              for(j=5; j>=1; j--)
+  56   3                              {
+  57   4                                      if(buf[j] == 0)
+  58   4                                              LedBuff[j] = 0xFF;
+  59   4                                      else
+  60   4                                              break;
+  61   4                              }
+  62   3                              //将剩余的有效数字位如实转换
+  63   3                              for( ; j>=0; j--)       //for()起始未对j操作，j即保持上个循环结束时的值
+  64   3                              {
+  65   4                                      LedBuff[j] = LedChar[buf[j]];
+  66   4                                      if(j==0)
+  67   4                                              break;  //***Johnny***这里蕴含着一个变量j溢出的问题***Luo***//
+  68   4                              }
+  69   3                      }
+  70   2              }
+  71   1      }
+  72          /* 定时器0中断服务函数 */
+  73          void InterruptTime0() interrupt 1
+  74          {
+  75   1              TH0 = 0xFC;             //重新加载初值
+  76   1              TL0 = 0x67;
+  77   1              cnt++;                  //中断次数计数值加1
+  78   1              if(cnt >= 1000)         //中断1000次即1秒
+  79   1              {
+  80   2                      cnt = 0;                //清零计数值以重新开始下1秒计时
+  81   2                      flag1s = 1;             //设置1秒定时标志为1
+  82   2              }
+  83   1              //以下代码完成数码管动态扫描刷新
+  84   1              P0 = 0xFF;      //显示消隐                         
+  85   1              switch(i)
+  86   1              {
+  87   2                      case 0: ADDR2=0; ADDR1=0; ADDR0=0; i++; P0=LedBuff[0]; break;
+  88   2                      case 1: ADDR2=0; ADDR1=0; ADDR0=1; i++; P0=LedBuff[1]; break;
+  89   2                      case 2: ADDR2=0; ADDR1=1; ADDR0=0; i++; P0=LedBuff[2]; break;
+  90   2                      case 3: ADDR2=0; ADDR1=1; ADDR0=1; i++; P0=LedBuff[3]; break;
+  91   2                      case 4: ADDR2=1; ADDR1=0; ADDR0=0; i++; P0=LedBuff[4]; break;
+  92   2                      case 5: ADDR2=1; ADDR1=0; ADDR0=1; i=0; P0=LedBuff[5]; break;
+  93   2                      default: break;
+  94   2              }
+  95   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    426    ----
+   CONSTANT SIZE    =     16    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     10      10
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
