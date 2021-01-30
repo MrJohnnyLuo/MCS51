@@ -1,4 +1,0 @@
-"STARTUP.obj",
-"TwinkleLed.obj" 
-TO "TwinkleLed" 
-RAMSIZE(256) 

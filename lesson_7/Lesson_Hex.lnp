@@ -1,4 +1,0 @@
-"STARTUP.obj",
-"main.obj" 
-TO "Lesson_Hex" 
-RAMSIZE(256) 
